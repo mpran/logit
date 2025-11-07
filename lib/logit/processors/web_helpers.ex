@@ -13,7 +13,7 @@ defmodule Logit.Processors.WebHelpers do
 
     remote_ip =
       conn.req_headers
-      |> RemoteIp.from(headers: _custom_internal_forwarding_ip_keys())
+      |> RemoteIp.from(headers: custom_internal_forwarding_ip_keys())
       |> _parse_ip(conn)
 
     values =
@@ -50,7 +50,7 @@ defmodule Logit.Processors.WebHelpers do
 
     remote_ip =
       headers
-      |> RemoteIp.from(headers: _custom_internal_forwarding_ip_keys())
+      |> RemoteIp.from(headers: custom_internal_forwarding_ip_keys())
       |> _parse_ip(meta.socket)
 
     values =
@@ -82,11 +82,14 @@ defmodule Logit.Processors.WebHelpers do
     ip =
       socket
       |> headers_from_socket()
-      |> RemoteIp.from(headers: _custom_internal_forwarding_ip_keys())
+      |> RemoteIp.from(headers: custom_internal_forwarding_ip_keys())
       |> _parse_ip()
 
     [{@custom_internal_forwarding_ip_key, ip}]
   end
+
+  def custom_internal_forwarding_ip_keys,
+    do: [@custom_internal_forwarding_ip_key] ++ RemoteIp.Options.default(:headers)
 
   def headers_from_socket(%{private: %{connect_info: connect_info}} = _socket) do
     _header_from_connect_info(connect_info)
@@ -106,9 +109,6 @@ defmodule Logit.Processors.WebHelpers do
         []
     end
   end
-
-  def _custom_internal_forwarding_ip_keys,
-    do: [@custom_internal_forwarding_ip_key] ++ RemoteIp.Options.default(:headers)
 
   defp _drop_secure_keys(map) when is_map(map) do
     Map.drop(map, @secure_keys)
