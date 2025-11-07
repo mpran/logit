@@ -6,6 +6,7 @@ defmodule Logit.Processors.WebHelpers do
   @secure_atom_keys [:token, :password, :secret]
   @secure_string_keys Enum.map(@secure_atom_keys, &Atom.to_string/1)
   @secure_keys @secure_atom_keys ++ @secure_string_keys
+  @custom_internal_forwarding_ip_key "x-forwarded-from-ip"
 
   def phoenix_report(event, conn, measurements, _opts \\ []) do
     {path, params} = _parse_url_path(conn.request_path, conn.path_params)
@@ -77,6 +78,16 @@ defmodule Logit.Processors.WebHelpers do
     {tags, values}
   end
 
+  def forwarding_headers(socket) do
+    ip =
+      socket
+      |> headers_from_socket()
+      |> RemoteIp.from(headers: _custom_internal_forwarding_ip_keys())
+      |> _parse_ip()
+
+    [{@custom_internal_forwarding_ip_key, ip}]
+  end
+
   def headers_from_socket(%{private: %{connect_info: connect_info}} = _socket) do
     _header_from_connect_info(connect_info)
   end
@@ -96,19 +107,19 @@ defmodule Logit.Processors.WebHelpers do
     end
   end
 
-  @custom_internal_forwarding_ip_key "x-forwarded-from-ip"
-
   def _custom_internal_forwarding_ip_keys,
     do: [@custom_internal_forwarding_ip_key] ++ RemoteIp.Options.default(:headers)
 
-  def _drop_secure_keys(map) when is_map(map) do
+  defp _drop_secure_keys(map) when is_map(map) do
     Map.drop(map, @secure_keys)
   end
 
-  def _parse_ip({_, _, _, _} = ip, _socket), do: ip |> :inet.ntoa() |> to_string()
-  def _parse_ip(_, socket), do: socket.assigns[:remote_ip] || ""
+  defp _parse_ip({_, _, _, _} = ip), do: ip |> :inet.ntoa() |> to_string()
+  defp _parse_ip(_), do: ""
+  defp _parse_ip({_, _, _, _} = ip, _socket), do: _parse_ip(ip)
+  defp _parse_ip(_, socket), do: socket.assigns[:remote_ip] || ""
 
-  def _parse_url_path(path, params) do
+  defp _parse_url_path(path, params) do
     params_inversed = Map.new(params, fn {k, v} -> {to_string(v), k} end)
 
     path
