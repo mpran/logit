@@ -11,11 +11,9 @@ defmodule Logit.Processors.Influx do
     :fields
   ]
 
-  @default_processors [
-    Logit.Processors.Influx.Phoenix,
-    Logit.Processors.Influx.LiveView,
-    Logit.Processors.Influx.Vm
-  ]
+  @app_processors [Logit.Processors.Influx.Vm]
+  @web_app_processors [Logit.Processors.Influx.Phoenix, Logit.Processors.Influx.LiveView] ++
+                        @app_processors
 
   def start_link(init_arg) do
     Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
@@ -42,6 +40,12 @@ defmodule Logit.Processors.Influx do
     Logit.Processors.Influx.Producer.emit_metric(event)
   end
 
+  def default_processors, do: @app_processors
+
+  def app_processors, do: @app_processors
+
+  def web_app_processors, do: @web_app_processors
+
   def _start_processors_or_default(args) do
     if args[:processors] do
       Enum.each(
@@ -55,7 +59,7 @@ defmodule Logit.Processors.Influx do
         end
       )
     else
-      Enum.each(@default_processors, & &1.attach())
+      Enum.each(default_processors(), & &1.attach())
     end
   end
 
