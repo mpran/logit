@@ -36,6 +36,12 @@ defmodule Logit.Processors.Influx do
     Supervisor.init(children, strategy: :one_for_one)
   end
 
+  def report(event, tags \\ [], fields) do
+    event = %__MODULE__{name: "app_metrics.#{event}", tags: _with_meta_tags(tags), fields: fields}
+
+    Logit.Processors.Influx.Producer.emit_metric(event)
+  end
+
   def _start_processors_or_default(args) do
     if args[:processors] do
       Enum.each(
@@ -53,9 +59,36 @@ defmodule Logit.Processors.Influx do
     end
   end
 
-  def report(event, tags \\ [], fields) do
-    event = %__MODULE__{name: "app_metrics.#{event}", tags: tags, fields: fields}
+  defp _with_meta_tags(%{} = tags) do
+    tags
+    |> Enum.into([])
+    |> _with_meta_tags()
+  end
 
-    Logit.Processors.Influx.Producer.emit_metric(event)
+  defp _with_meta_tags(tags) do
+    [
+      hostname: _hostname(),
+      app_name: _app_name(),
+      app_version: _app_version()
+    ]
+    |> Keyword.merge(tags)
+  end
+
+  defp _app_version do
+    {_, ver} = :init.script_id()
+
+    to_string(ver)
+  end
+
+  defp _app_name do
+    {app, _} = :init.script_id()
+
+    System.get_env("APP_NAME", to_string(app))
+  end
+
+  defp _hostname do
+    {:ok, hostname} = :inet.gethostname()
+
+    to_string(hostname)
   end
 end
