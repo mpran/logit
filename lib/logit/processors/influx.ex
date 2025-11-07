@@ -11,8 +11,8 @@ defmodule Logit.Processors.Influx do
     :fields
   ]
 
-  @app_processors [Logit.Processors.Influx.Vm]
-  @web_app_processors [Logit.Processors.Influx.Phoenix, Logit.Processors.Influx.LiveView] ++
+  @app_processors [__MODULE__.Vm]
+  @web_app_processors [__MODULE__.Phoenix, __MODULE__.LiveView] ++
                         @app_processors
 
   def start_link(init_arg) do
@@ -21,12 +21,11 @@ defmodule Logit.Processors.Influx do
 
   @impl true
   def init(args) do
-    consumer_config = struct(Logit.Processors.Influx.Consumer, Enum.into(args, %{}))
+    consumer_config = struct(__MODULE__.Consumer, Enum.into(args, %{}))
 
     children = [
-      # Logit.Processors.Influx.Producer,
-      {Logit.Processors.Influx.Producer, []},
-      {Logit.Processors.Influx.Consumer, consumer_config}
+      {__MODULE__.Producer, []},
+      {__MODULE__.Consumer, consumer_config}
     ]
 
     _start_processors_or_default(args)
@@ -37,7 +36,7 @@ defmodule Logit.Processors.Influx do
   def report(event, tags \\ [], fields) do
     event = %__MODULE__{name: "app_metrics.#{event}", tags: _with_meta_tags(tags), fields: fields}
 
-    Logit.Processors.Influx.Producer.emit_metric(event)
+    __MODULE__.Producer.emit_metric(event)
   end
 
   def default_processors, do: @app_processors
