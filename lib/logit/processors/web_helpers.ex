@@ -11,16 +11,11 @@ defmodule Logit.Processors.WebHelpers do
   def phoenix_report(event, conn, measurements, _opts \\ []) do
     {path, params} = _parse_url_path(conn.request_path, conn.path_params)
 
-    remote_ip =
-      conn.req_headers
-      |> RemoteIp.from(headers: custom_internal_forwarding_ip_keys())
-      |> _parse_ip(conn)
-
     values =
       [
         duration: measurements[:duration],
         request_id: conn.assigns[:request_id] || "",
-        remote_ip: remote_ip,
+        remote_ip: conn.assigns[:remote_ip],
         params: params |> _drop_secure_keys() |> _encode_params(),
         client_id: conn.assigns[:client_id] || ""
       ]
@@ -48,17 +43,12 @@ defmodule Logit.Processors.WebHelpers do
     view = meta.socket.view |> to_string()
     assigns_size = :erts_debug.flat_size(meta.socket.assigns) * @ws
 
-    remote_ip =
-      headers
-      |> RemoteIp.from(headers: custom_internal_forwarding_ip_keys())
-      |> _parse_ip(meta.socket)
-
     values =
       [
         lv_event: Map.get(meta, :event, ""),
         duration: measurements.duration,
         assigns_size_bytes: assigns_size,
-        remote_ip: remote_ip,
+        remote_ip: meta.socket.assigns[:remote_ip],
         params: meta.params |> _drop_secure_keys |> _encode_params(),
         error: _get_error_reason(meta),
         client_id: meta.socket.assigns[:client_id] || ""
