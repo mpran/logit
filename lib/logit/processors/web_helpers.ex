@@ -38,8 +38,7 @@ defmodule Logit.Processors.WebHelpers do
 
   @ws :erlang.system_info(:wordsize)
 
-  def live_view_report(event, meta, measurements, opts \\ []) do
-    headers = opts[:headers] || []
+  def live_view_report(event, meta, measurements, _opts \\ []) do
     view = meta.socket.view |> to_string()
     assigns_size = :erts_debug.flat_size(meta.socket.assigns) * @ws
 
@@ -69,13 +68,7 @@ defmodule Logit.Processors.WebHelpers do
   end
 
   def forwarding_headers(socket) do
-    ip =
-      socket
-      |> headers_from_socket()
-      |> RemoteIp.from(headers: custom_internal_forwarding_ip_keys())
-      |> _parse_ip()
-
-    [{@custom_internal_forwarding_ip_key, ip}]
+    [{@custom_internal_forwarding_ip_key, socket.assigns[:remote_ip]}]
   end
 
   def custom_internal_forwarding_ip_keys,
@@ -103,11 +96,6 @@ defmodule Logit.Processors.WebHelpers do
   defp _drop_secure_keys(map) when is_map(map) do
     Map.drop(map, @secure_keys)
   end
-
-  defp _parse_ip({_, _, _, _} = ip), do: ip |> :inet.ntoa() |> to_string()
-  defp _parse_ip(_), do: ""
-  defp _parse_ip({_, _, _, _} = ip, _socket), do: _parse_ip(ip)
-  defp _parse_ip(_, socket), do: socket.assigns[:remote_ip] || ""
 
   defp _parse_url_path(path, params) do
     params_inversed = Map.new(params, fn {k, v} -> {to_string(v), k} end)
