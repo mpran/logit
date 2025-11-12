@@ -23,7 +23,8 @@ defmodule Logit.MixProject do
       {:gen_stage, ">= 0.0.0"},
       {:plug, ">= 0.0.0"},
       {:remote_ip, ">= 0.0.0"},
-      {:req, ">= 0.0.0"}
+      {:req, ">= 0.0.0"},
+      {:bypass, "~> 2.1", only: :test}
     ]
   end
 end
